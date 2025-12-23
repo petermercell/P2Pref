@@ -1,0 +1,34 @@
+LINUX:
+
+rm -rf build && mkdir build && cd build
+
+cmake .. -DNUKE_VERSION=16.0v6 -DCMAKE_INSTALL_PREFIX=~/.nuke
+
+make
+
+////
+
+MAC:
+
+cd /Users/g/Downloads/000_LETS_GO-3/P2Pref/MAC/P2Pref_16.0v6
+
+rm -rf build && mkdir build && cd build
+
+cmake .. -DNUKE_VERSION=16.0v6 -DCMAKE_INSTALL_PREFIX=~/.nuke
+
+make 
+
+////
+
+WIN:
+
+D:
+cd C:\Users\WORKSTATION\Desktop\P2Pref\WIN\P2Pref_16.0v6
+rmdir /s /q build
+mkdir build
+cd build
+cmake .. -G "Visual Studio 17 2022" -A x64 -DNUKE_VERSION=16.0v6 -DCMAKE_INSTALL_PREFIX=%USERPROFILE%\.nuke
+cmake --build . --config Release
+
+
+
