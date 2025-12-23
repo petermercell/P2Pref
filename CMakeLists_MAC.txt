@@ -1,0 +1,85 @@
+cmake_minimum_required(VERSION 3.11)
+
+project(P2Pref)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# ============================================================================
+# RPATH Configuration - Make plugin portable
+# ============================================================================
+# Don't set RPATH - rely on Nuke's environment (DYLD_LIBRARY_PATH on macOS)
+# This makes the plugin work regardless of where Nuke is installed
+set(CMAKE_SKIP_BUILD_RPATH TRUE)
+set(CMAKE_SKIP_INSTALL_RPATH TRUE)
+set(CMAKE_MACOSX_RPATH FALSE)
+
+# ============================================================================
+# macOS SPECIFIC CONFIGURATION
+# ============================================================================
+
+# Set architecture flags for Apple Silicon (arm64)
+if(APPLE)
+    set(CMAKE_OSX_ARCHITECTURES "arm64")
+endif()
+
+# Set Nuke version and directory (allow override via -DNUKE_VERSION)
+if(NOT DEFINED NUKE_VERSION)
+    set(NUKE_VERSION "16.0v6")
+endif()
+set(NUKE_BASE_DIR "/Applications/Nuke${NUKE_VERSION}")
+set(NUKE_INSTALL_DIR "${NUKE_BASE_DIR}/Nuke${NUKE_VERSION}.app/Contents/MacOS")
+
+message(STATUS "Nuke Version: ${NUKE_VERSION}")
+message(STATUS "Nuke Directory: ${NUKE_INSTALL_DIR}")
+
+# Verify Nuke directory exists
+if(NOT EXISTS ${NUKE_INSTALL_DIR})
+    message(FATAL_ERROR "Nuke directory not found: ${NUKE_INSTALL_DIR}")
+endif()
+if(NOT EXISTS ${NUKE_INSTALL_DIR}/libDDImage.dylib)
+    message(FATAL_ERROR "libDDImage.dylib not found in: ${NUKE_INSTALL_DIR}")
+endif()
+
+# Add the Nuke include directory
+include_directories(${NUKE_INSTALL_DIR}/include)
+
+# Uncomment the following if needed for compatibility
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=0")
+add_compile_options(-fPIC)
+
+# Set the prefix for shared libraries
+set(CMAKE_SHARED_LIBRARY_PREFIX "")
+
+# Create the P2Pref plugin
+add_library(P2Pref SHARED src/P2Pref.cpp)
+
+# Set plugin properties
+set_target_properties(P2Pref PROPERTIES 
+    SUFFIX ".dylib"
+    INSTALL_NAME_DIR "@rpath"
+    BUILD_WITH_INSTALL_NAME_DIR TRUE
+)
+
+# Link the necessary libraries
+target_link_libraries(P2Pref PRIVATE 
+    ${NUKE_INSTALL_DIR}/libDDImage.dylib 
+    "-framework OpenGL"
+)
+
+# No RPATH needed - Nuke's environment provides library paths
+# This makes the plugin portable across different Nuke installations
+
+# Install the plugin
+install(TARGETS P2Pref DESTINATION ${CMAKE_INSTALL_PREFIX})
+
+# Build summary
+message(STATUS "========================================")
+message(STATUS "Build Configuration Summary:")
+message(STATUS "  Plugin: P2Pref.dylib")
+message(STATUS "  Nuke Version: ${NUKE_VERSION}")
+message(STATUS "  Nuke Directory: ${NUKE_INSTALL_DIR}")
+message(STATUS "  Architecture: ${CMAKE_OSX_ARCHITECTURES}")
+message(STATUS "  RPATH: Not set (portable - uses Nuke's environment)")
+message(STATUS "  Install Prefix: ${CMAKE_INSTALL_PREFIX}")
+message(STATUS "========================================")

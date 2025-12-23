@@ -1,0 +1,191 @@
+cmake_minimum_required(VERSION 3.15)
+
+# CRITICAL: Set MSVC runtime library policy BEFORE project()
+# This enables modern runtime library control
+cmake_policy(SET CMP0091 NEW)
+
+# Set the project name and version
+project(P2Pref LANGUAGES CXX)
+
+# ============================================================================
+# Windows-specific Configuration
+# ============================================================================
+if(NOT WIN32)
+  message(FATAL_ERROR "This CMakeLists.txt is for Windows only")
+endif()
+
+# Compiler requirements - Visual Studio 2022
+if(MSVC)
+  if(MSVC_VERSION LESS 1930)
+    message(FATAL_ERROR "Visual Studio 2022 or later required (MSVC 19.30+)")
+  else()
+    message(STATUS "Using MSVC version ${MSVC_VERSION}")
+  endif()
+else()
+  message(FATAL_ERROR "This build requires MSVC (Visual Studio)")
+endif()
+
+# Set default build type if not specified
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
+
+# ============================================================================
+# CRITICAL: Force static runtime library globally
+# This eliminates MSVCP140.dll, VCRUNTIME140.dll, and api-ms-win-crt dependencies
+# ============================================================================
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
+# Enable C++17 standard
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# ============================================================================
+# Nuke Configuration
+# ============================================================================
+if(NOT DEFINED NUKE_VERSION)
+  set(NUKE_VERSION "16.0v6")
+endif()
+
+# Set Nuke directory - adjust this path for your installation
+if(NOT DEFINED NDKDIR)
+  set(NDKDIR "C:/Program Files/Nuke${NUKE_VERSION}")
+endif()
+
+message(STATUS "Using Nuke version: ${NUKE_VERSION}")
+message(STATUS "Nuke directory: ${NDKDIR}")
+
+# Verify Nuke directory exists
+if(NOT EXISTS "${NDKDIR}")
+  message(FATAL_ERROR "Nuke directory not found: ${NDKDIR}")
+endif()
+if(NOT EXISTS "${NDKDIR}/DDImage.lib")
+  message(FATAL_ERROR "DDImage.lib not found in: ${NDKDIR}")
+endif()
+
+# ============================================================================
+# Windows Compiler Flags and Definitions
+# ============================================================================
+# Standard Windows defines
+add_definitions(
+  -DWIN32
+  -D_WINDOWS
+  -DNDEBUG
+  -DNOMINMAX                    # Prevent min/max macro conflicts
+  -D_CRT_SECURE_NO_WARNINGS     # Disable CRT security warnings
+  -D_SCL_SECURE_NO_WARNINGS     # Disable SCL security warnings
+  -D_USE_MATH_DEFINES           # Enable M_PI and other math constants
+  -DWIN32_LEAN_AND_MEAN         # Exclude rarely-used stuff from Windows headers
+)
+
+# MSVC-specific compiler flags
+if(MSVC)
+  # Warning level and optimization
+  add_compile_options(
+    /W3          # Warning level 3 (reasonable warnings)
+    /O2          # Maximize speed
+    /Ob2         # Inline expansion
+    /EHsc        # Exception handling
+    /FS          # Force synchronous PDB writes
+    /nologo      # Suppress startup banner
+  )
+  
+  # Suppress specific warnings that are too noisy
+  add_compile_options(
+    /wd4514      # Unreferenced inline function removed
+    /wd4710      # Function not inlined
+    /wd4711      # Function selected for inline expansion
+    /wd4668      # Undefined preprocessor macro
+  )
+endif()
+
+# ============================================================================
+# Create P2Pref Plugin
+# ============================================================================
+add_library(P2Pref SHARED src/P2Pref.cpp)
+
+# CRITICAL: Set static runtime for P2Pref plugin
+# This ensures /MT is used instead of /MD
+set_property(TARGET P2Pref PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
+# Include directories
+target_include_directories(P2Pref PUBLIC
+    ${CMAKE_SOURCE_DIR}/include
+    "${NDKDIR}/include"
+)
+
+# Define any necessary preprocessor definitions (already set globally above)
+target_compile_definitions(P2Pref PRIVATE 
+    _USE_MATH_DEFINES 
+    NOMINMAX
+)
+
+# Link Nuke's DDImage and OpenGL
+target_link_libraries(P2Pref PRIVATE
+    "${NDKDIR}/DDImage.lib"
+    opengl32
+)
+
+# Set the output directory and naming
+set_target_properties(P2Pref PROPERTIES
+    OUTPUT_NAME "P2Pref"
+    SUFFIX ".dll"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Release
+    LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/Release
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+)
+
+# ============================================================================
+# Installation Configuration
+# ============================================================================
+# Default install to user's .nuke directory
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+  set(CMAKE_INSTALL_PREFIX "$ENV{USERPROFILE}/.nuke" 
+      CACHE PATH "Install path" FORCE)
+endif()
+
+install(TARGETS P2Pref
+        RUNTIME DESTINATION .
+        LIBRARY DESTINATION .
+)
+
+# ============================================================================
+# Print Configuration Summary
+# ============================================================================
+message(STATUS "")
+message(STATUS "===========================================================================")
+message(STATUS "Windows Build Configuration Summary:")
+message(STATUS "  Build Type:        ${CMAKE_BUILD_TYPE}")
+message(STATUS "  Compiler:          MSVC ${MSVC_VERSION}")
+message(STATUS "  C++ Standard:      C++${CMAKE_CXX_STANDARD}")
+message(STATUS "  Runtime Linking:   STATIC (/MT) - No VC++ Redistributable required!")
+message(STATUS "  ")
+message(STATUS "Nuke Configuration:")
+message(STATUS "  Nuke Version:      ${NUKE_VERSION}")
+message(STATUS "  Nuke Directory:    ${NDKDIR}")
+message(STATUS "  DDImage Library:   ${NDKDIR}/DDImage.lib")
+message(STATUS "  ")
+message(STATUS "Plugin:")
+message(STATUS "  P2Pref.dll         Point-to-point reference node")
+message(STATUS "  ")
+message(STATUS "Installation:")
+message(STATUS "  Install prefix:    ${CMAKE_INSTALL_PREFIX}")
+message(STATUS "  ")
+message(STATUS "Build Commands:")
+message(STATUS "  Configure:         cmake -B build -G \"Visual Studio 17 2022\" -A x64")
+message(STATUS "  Build:             cmake --build build --config Release")
+message(STATUS "  Install:           cmake --install build --config Release")
+message(STATUS "  ")
+message(STATUS "Portability:")
+message(STATUS "  DLL Dependencies:  DDImage.dll, KERNEL32.dll, opengl32.dll ONLY")
+message(STATUS "  Required:          - Nuke installation (provides DDImage.dll)")
+message(STATUS "                     - Windows 10/11")
+message(STATUS "  NOT Required:      - Visual C++ Redistributable (statically linked!)")
+message(STATUS "  ")
+message(STATUS "Usage in Nuke (Windows):")
+message(STATUS "  Add to init.py or menu.py:")
+message(STATUS "    nuke.pluginAddPath('C:/Users/YourName/.nuke')")
+message(STATUS "  Or load individually:")
+message(STATUS "    nuke.load('P2Pref.dll')")
+message(STATUS "===========================================================================")
+message(STATUS "")
