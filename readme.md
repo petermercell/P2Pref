@@ -113,7 +113,7 @@ Read (with P pass)
 
 ## Credits
 
-- **Code base** inspired by [Ivan Busquets'](https://www.linkedin.com/in/ivanbusquets/) C44Matrix
+- **Code base** inspired by [Ivan Busquets'](https://www.nukepedia.com/tools/plugins/colour/c44matrix/) C44Matrix
 - **Technique** inspired by learnings from [The Next Level](https://www.complairvfx.com/thenextlevel) program by Comp Lair, Pedro Andrade
 
 ## License
