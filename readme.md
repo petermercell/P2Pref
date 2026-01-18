@@ -1,6 +1,6 @@
 # P2Pref
 
-A C++ plugin for Foundry's Nuke that converts a **P (position) pass** to a **Pref (reference position) pass** using an Axis or Locator node.
+A C++ plugin for Foundry's Nuke that converts a **P (position) pass** to a **Pref (reference position) pass** using an Axis node.
 
 ## Overview
 
