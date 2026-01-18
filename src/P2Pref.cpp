@@ -1,5 +1,7 @@
 // P2Pref.cpp
 // Converts position pass (P) to reference frame position (Pref)
+// Code base inspired by Ivan Busquets C44Matrix 
+// Technique inspired by learnings in The Next Level program from Comp Lair Pedro Andrade
 
 static const char* const HELP = 
     "Converts position pass (P) to reference frame position (Pref).\n"
@@ -208,7 +210,7 @@ void P2Pref::knobs(Knob_Callback f)
     Tooltip(f, "Reference frame for inverting axis rotation and translation.");
     
     Divider(f, "");
-    Text_knob(f, "P2Pref by Peter Mercell 2025\nInspired by Ivan Busquets and Comp Lair Pedro Andrade");
+    Text_knob(f, "P2Pref by Peter Mercell 2025\nCode base inspired by Ivan Busquets\nTechnique inspired by learnings in The Next Level program from Comp Lair Pedro Andrade");
 }
 
 static Iop* build(Node* node) { 
