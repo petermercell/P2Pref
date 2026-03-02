@@ -2,6 +2,8 @@
 
 A C++ plugin for Foundry's Nuke that converts a **P (position) pass** to a **Pref (reference position) pass** using an Axis node.
 
+Note: Currently only Axis3 and Camera3 are supported. Support for Axis4 and Camera4 will be added later.
+
 ## Overview
 
 P2Pref solves a common VFX challenge: projecting textures onto animated geometry with stable, non-sliding results. By transforming world-space position data (P pass) into reference-space coordinates (Pref pass) using a tracked Axis, you can create stable UV coordinates for texture projection workflows.
